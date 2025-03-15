@@ -8,11 +8,11 @@ This template should help get you started developing with Tauri in vanilla HTML,
 
 ## Dependencies
 
-You need to have installed cargo and npm (or alternatives)
+You need to have installed cargo and npm (or alternatives). Also 'cargo install tauri-cli'
 
 ## Startup
 
-When downloading this repo, do 'npm install'.
+When downloading this repo, do 'npm install'. 
 
 ## Develop
 
