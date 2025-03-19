@@ -1,7 +1,5 @@
-use directories::UserDirs;
 use std::env;
 use std::fs;
-use std::fs::create_dir;
 use std::fs::File;
 use std::io::Read;
 use std::io::Write;
@@ -9,23 +7,15 @@ use std::path::Path;
 
 // Learn more about Tauri commands at https://tauri.app/develop/calling-rust/
 #[tauri::command]
-fn insertar_tarjeta(titulo: String, enlace: String) -> String {
-    return format!(
-        "<a class='tarjeta' href='tarjeta.html#{}'> {} </a>",
-        enlace, titulo
-    );
-}
+fn leer_archivo(titulo: String) -> Result<String, String> {
+    let path = format!("{}\\{}.txt", obtener_ruta_carpeta(), titulo);
 
-#[tauri::command]
-fn leer_archivo(path: String) -> Result<String, String> {
-    // Abrir el archivo
     let mut archivo = match File::open(&path) {
         Ok(file) => file,
         Err(e) => return Err(format!("Error al abrir el archivo: {}", e)),
     };
 
     let mut contenido = String::new();
-    // Leer el archivo y almacenar su contenido en `contenido`
     match archivo.read_to_string(&mut contenido) {
         Ok(_) => Ok(contenido),
         Err(e) => Err(format!("Error al leer el archivo: {}", e)),
@@ -46,48 +36,35 @@ fn crear_nota(titulo: &str, contenido: &str) -> String {
     }
 }
 
-fn obtener_ruta_usuario() -> String {
-    // Obtener la ruta del directorio personal del usuario
-    let user_home = env::var("USERPROFILE").unwrap_or_else(|_| env::var("HOME").unwrap_or_default());
-
-    // Retorna la ruta
-    user_home
-}
-
 fn obtener_ruta_carpeta() -> String {
     // Obtener la ruta del directorio personal del usuario
-    let user_home = env::var("USERPROFILE").unwrap_or_else(|_| env::var("HOME").unwrap_or_default());
+    let user_home =
+        env::var("USERPROFILE").unwrap_or_else(|_| env::var("HOME").unwrap_or_default());
 
     // Construir la ruta completa para la carpeta
-    let path = Path::new(&user_home).join("MiBlocDeNotas");
+    let path = Path::new(&user_home).join("AppData\\Local\\Programs\\MiBlocDeNotas");
 
     // Retorna la ruta
     path.to_string_lossy().to_string()
 }
 
-
 #[tauri::command]
-fn crear_directorio(nombre: &str) -> String {
-    // Obtener el directorio del usuario
-    if let Some(user_dirs) = UserDirs::new() {
-        let user_home = user_dirs.home_dir();
-        
-        // Construir la ruta completa para el nuevo directorio
-        let path = user_home.join(nombre);
+fn crear_directorio() -> String {
+    let user_home = obtener_ruta_carpeta();
 
-        // Intentar crear el directorio
-        match create_dir(&path) {
-            Ok(_) => format!("Directorio '{}' creado en: {}", nombre, path.display()),
-            Err(e) => format!("Error al crear el directorio: {}", e),
-        }
-    } else {
-        "Error al obtener el directorio del usuario".to_string()
+    // Construir la ruta completa para el nuevo directorio
+    let path = Path::new(&user_home);
+
+    // Intentar crear el directorio
+    match fs::create_dir_all(&path) {
+        Ok(_) => format!("Directorio creado en: {}", path.display()),
+        Err(e) => format!("Error al crear el directorio: {}", e),
     }
 }
 
 #[tauri::command]
 fn listar_archivos_en_carpeta() -> Result<Vec<String>, String> {
-    let ruta_usuario = obtener_ruta_usuario().to_string() + "\\MiBlocDeNotas";
+    let ruta_usuario = obtener_ruta_carpeta();
     let dir = Path::new(&ruta_usuario);
 
     // Verifica si la ruta es un directorio
@@ -107,7 +84,7 @@ fn listar_archivos_en_carpeta() -> Result<Vec<String>, String> {
                             .file_name()
                             .into_string()
                             .unwrap_or_else(|_| String::from("Nombre no válido"));
-                        
+
                         archivos.push(nombre);
                     }
                     Err(e) => {
@@ -126,7 +103,6 @@ pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
         .invoke_handler(tauri::generate_handler![
-            insertar_tarjeta,
             crear_nota,
             crear_directorio,
             leer_archivo,
